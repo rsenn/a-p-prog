@@ -23,4 +23,3 @@
 #define P16C_ISP_WRITE_CFG 0x44
 #define P18Q_ISP_WRITE_CFG 0x45
 #define P18Q_ISP_WRITE_PGM 0x46
-#define SET_PORT 0x73
