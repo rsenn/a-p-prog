@@ -8,9 +8,9 @@
 #include <util/delay.h>
 #include "pp.h"
 
-#define ISP_PORT PORTC
+/*#define ISP_PORT PORTC
 #define ISP_DDR DDRC
-#define ISP_PIN PINC
+#define ISP_PIN PINC*/
 #define ISP_MCLR 3 // A3
 #define ISP_DAT 1  // A1
 #define ISP_CLK 0  // A0
