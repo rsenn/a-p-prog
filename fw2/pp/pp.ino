@@ -15,23 +15,24 @@
 #define ISP_DAT 1  // A1
 #define ISP_CLK 0  // A0
 
-#define ISP_MCLR_1 ISP_PORT |= (1 << ISP_MCLR);
-#define ISP_MCLR_0 ISP_PORT &= ~(1 << ISP_MCLR);
-#define ISP_MCLR_D_I ISP_DDR &= ~(1 << ISP_MCLR);
-#define ISP_MCLR_D_0 ISP_DDR |= (1 << ISP_MCLR);
+#define ISP_MCLR_1 digitalWrite(ISP_MCLR+A0, HIGH);
+#define ISP_MCLR_0 digitalWrite(ISP_MCLR+A0, LOW);
+#define ISP_MCLR_D_I pinMode(ISP_MCLR+A0, INPUT);
+#define ISP_MCLR_D_0 pinMode(ISP_MCLR+A0, OUTPUT);
 
-#define ISP_DAT_1 ISP_PORT |= (1 << ISP_DAT);
-#define ISP_DAT_0 ISP_PORT &= ~(1 << ISP_DAT);
-#define ISP_DAT_V (ISP_PIN & (1 << ISP_DAT))
-#define ISP_DAT_D_I ISP_DDR &= ~(1 << ISP_DAT);
-#define ISP_DAT_D_0 ISP_DDR |= (1 << ISP_DAT);
+#define ISP_DAT_1 digitalWrite(ISP_DAT+A0, HIGH);
+#define ISP_DAT_0 digitalWrite(ISP_DAT+A0, LOW);
+#define ISP_DAT_V digitalRead(ISP_DAT+A0)
+#define ISP_DAT_D_I pinMode(ISP_DAT+A0, INPUT);
+#define ISP_DAT_D_0 pinMode(ISP_DAT+A0, OUTPUT);
 
-#define ISP_CLK_1 ISP_PORT |= (1 << ISP_CLK);
-#define ISP_CLK_0 ISP_PORT &= ~(1 << ISP_CLK);
-#define ISP_CLK_D_I ISP_DDR &= ~(1 << ISP_CLK);
-#define ISP_CLK_D_0 ISP_DDR |= (1 << ISP_CLK);
+#define ISP_CLK_1 digitalWrite(ISP_CLK+A0, HIGH);
+#define ISP_CLK_0 digitalWrite(ISP_CLK+A0, LOW);
+#define ISP_CLK_D_I pinMode(ISP_CLK+A0, INPUT);
+#define ISP_CLK_D_0 pinMode(ISP_CLK+A0, OUTPUT);
 
 #define ISP_CLK_DELAY 1
+
 void isp_send(unsigned int data, unsigned char n);
 unsigned int isp_read_16(void);
 unsigned char enter_progmode(void);
@@ -70,7 +71,6 @@ uint8_t usart_rx_b(void);
 void usart_tx_s(uint8_t* data);
 
 #define _BAUD 57600                    // Baud rate (9600 is default)
-#define _UBRR (F_CPU / 16) / _BAUD - 1 // Used for UBRRL and UBRRH
 
 unsigned int fmimg[32] = {
     0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234, 0x1234,
@@ -84,12 +84,10 @@ unsigned char rx_message[280], rx_message_ptr;
 unsigned int flash_buffer[260];
 unsigned int test, cfg_val;
 unsigned long addr;
-int
-main(void) {
-  UBRR0H = ((_UBRR)&0xF00);
-  UBRR0L = (uint8_t)((_UBRR)&0xFF);
-  UCSR0B |= _BV(TXEN0);
-  UCSR0B |= _BV(RXEN0);
+
+void
+setup() {
+  Serial.begin(_BAUD);
 
   ISP_CLK_D_0
   ISP_DAT_D_0
@@ -97,64 +95,12 @@ main(void) {
   ISP_CLK_0
   ISP_MCLR_D_0
   ISP_MCLR_1
+  
   rx_state = 0;
-  /*
-  while (1)
-    {
-    if (usart_rx_rdy())
-      {
-      rx = usart_rx_b();
-      if (rx=='i')
-        {
-        usart_tx_b ('I');
-        usart_tx_b (0x0A);
-        enter_progmode();
-//        test = get_ID();
-        exit_progmode();
-        usart_tx_hexa_16(test);
-        usart_tx_b (0x0A);
-        }
-      if (rx=='r')
-        {
-        usart_tx_b ('R');
-        usart_tx_b (0x0A);
-        enter_progmode();
-        isp_reset_pointer();
-        isp_read_pgm(flash_buffer,64);
-        exit_progmode();
-        for (i=0;i<64;i++)
-          {
-          if (i%4==0) usart_tx_b (0x0A);
-          usart_tx_hexa_16(flash_buffer[i]);
-          }
-        usart_tx_b (0x0A);
-        }
-      if (rx=='w')
-        {
-        usart_tx_b ('W');
-        enter_progmode();
-        isp_reset_pointer();
-        isp_write_pgm(fmimg,32,0);
-//        p16c_isp_write_pgm(fmimg,32,32);
-        exit_progmode();
-        usart_tx_b ('*');
-        usart_tx_b (0x0A);
-        }
-      if (rx=='e')
-        {
-        usart_tx_b ('E');
-        enter_progmode();
-        isp_reset_pointer();
-        isp_mass_erase();
-        exit_progmode();
-        usart_tx_b ('*');
-        usart_tx_b (0x0A);
-        }
+}
 
-      }
-
-    }
-    */
+void loop (void) {
+  
   while(1) {
     if(usart_rx_rdy()) {
       rx = usart_rx_b();
@@ -949,9 +895,9 @@ p18q_isp_write_cfg(unsigned int data, unsigned long addr) {
 
 void
 usart_tx_b(uint8_t data) {
-  while(!(UCSR0A & _BV(UDRE0)))
+  while(!Serial.availableForWrite())
     ;
-  UDR0 = data;
+  Serial.write(data);
 }
 
 void
@@ -961,7 +907,7 @@ usart_tx_s(uint8_t* data) {
 
 uint8_t
 usart_rx_rdy(void) {
-  if(UCSR0A & _BV(RXC0))
+  if(Serial.available())
     return 1;
   else
     return 0;
@@ -969,7 +915,7 @@ usart_rx_rdy(void) {
 
 uint8_t
 usart_rx_b(void) {
-  return (uint8_t)UDR0;
+  return (uint8_t)Serial.read();
 }
 
 void
