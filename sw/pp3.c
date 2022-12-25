@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <string.h>
+#include "../pp.h"
 
 #if defined(__linux__) || defined(__APPLE__)
 #include <termios.h>
@@ -454,11 +455,11 @@ p16a_rst_pointer(void) {
   if(verbose > 2)
     flsprintf(stdout, "Resetting PC\n");
   if(chip_family == CF_P16F_D)
-    putByte(0x09); // operation number
+    putByte(ISP_RESET_POINTER_16D); // operation number
   else
-    putByte(0x03); // operation number
-  putByte(0x00);   // number of bytes remaining
-  getByte();       // return result - no check for its value
+    putByte(ISP_RESET_POINTER); // operation number
+  putByte(0x00);                // number of bytes remaining
+  getByte();                    // return result - no check for its value
   return 0;
 }
 
@@ -466,7 +467,7 @@ int
 p16a_mass_erase(void) {
   if(verbose > 2)
     flsprintf(stdout, "Mass erase\n");
-  putByte(0x07);
+  putByte(ISP_MASS_ERASE);
   putByte(0x00);
   getByte();
   return 0;
@@ -476,7 +477,7 @@ int
 p16a_load_config(void) {
   if(verbose > 2)
     flsprintf(stdout, "Load config\n");
-  putByte(0x04);
+  putByte(ISP_SEND_CONFIG);
   putByte(0x00);
   getByte();
   return 0;
@@ -486,7 +487,7 @@ int
 p16a_inc_pointer(unsigned char num) {
   if(verbose > 2)
     flsprintf(stdout, "Inc pointer %d\n", num);
-  putByte(0x05);
+  putByte(ISP_INC_POINTER);
   putByte(0x01);
   putByte(num);
   getByte();
@@ -498,7 +499,7 @@ p16a_program_page(unsigned int ptr, unsigned char num, unsigned char slow) {
   //	unsigned char i;
   if(verbose > 2)
     flsprintf(stdout, "Programming page of %d bytes at 0x%4.4x\n", num, ptr);
-  putByte(0x08);
+  putByte(ISP_WRITE_PGM);
   putByte(num + 2);
   putByte(num);
   putByte(slow);
@@ -516,7 +517,7 @@ p16a_read_page(unsigned char* data, unsigned char num) {
   unsigned char i;
   if(verbose > 2)
     flsprintf(stdout, "Reading page of %d bytes\n", num);
-  putByte(0x06);
+  putByte(ISP_READ_PGM);
   putByte(0x01);
   putByte(num / 2);
   getByte();
@@ -576,7 +577,7 @@ p18a_read_page(unsigned char* data, int address, unsigned char num) {
   unsigned char i;
   if(verbose > 2)
     flsprintf(stdout, "Reading page of %d bytes at 0x%6.6x\n", num, address);
-  putByte(0x11);
+  putByte(P18_ISP_READ_PGM);
   putByte(0x04);
   putByte(num / 2);
   putByte((address >> 16) & 0xFF);
@@ -591,7 +592,7 @@ int
 p18a_mass_erase(void) {
   if(verbose > 2)
     flsprintf(stdout, "Mass erase\n");
-  putByte(0x13);
+  putByte(P18_ISP_MASS_ERASE);
   putByte(0x00);
   getByte();
   return 0;
@@ -601,7 +602,7 @@ int
 p18b_mass_erase(void) {
   if(verbose > 2)
     flsprintf(stdout, "Mass erase\n");
-  putByte(0x23);
+  putByte(P18FJ_ISP_MASS_ERASE);
   putByte(0x00);
   getByte();
   return 0;
@@ -611,8 +612,8 @@ int
 p18d_mass_erase_part(unsigned long data) {
   if(verbose > 2)
     flsprintf(stdout, "Mass erase part of 0x%6.6x\n", data);
-  putByte(0x30);
-  putByte(0x03);
+  putByte(P18FK_ISP_MASS_ERASE);
+  putByte(0x09);
   putByte((data >> 16) & 0xFF);
   putByte((data >> 8) & 0xFF);
   putByte((data >> 0) & 0xFF);
@@ -673,7 +674,7 @@ p18a_write_page(unsigned char* data, int address, unsigned char num) {
   }
   if(verbose > 2)
     flsprintf(stdout, "Writing A page of %d bytes at 0x%6.6x\n", num, address);
-  putByte(0x12);
+  putByte(P18_ISP_WRITE_PGM);
   putByte(4 + num);
   putByte(num);
   putByte((address >> 16) & 0xFF);
@@ -699,7 +700,7 @@ p18d_write_page(unsigned char* data, int address, unsigned char num) {
   }
   if(verbose > 2)
     flsprintf(stdout, "Writing D page of %d bytes at 0x%6.6x\n", num, address);
-  putByte(0x31);
+  putByte(P18FK_ISP_WRITE_PGM);
   putByte(4 + num);
   putByte(num);
   putByte((address >> 16) & 0xFF);
@@ -714,7 +715,7 @@ int
 p18a_write_cfg(unsigned char data1, unsigned char data2, int address) {
   if(verbose > 2)
     flsprintf(stdout, "Writing cfg 0x%2.2x 0x%2.2x at 0x%6.6x\n", data1, data2, address);
-  putByte(0x14);
+  putByte(P18_ISP_WRITE_CFG);
   putByte(6);
   putByte(0);
   putByte((address >> 16) & 0xFF);
@@ -730,7 +731,7 @@ int
 p18d_write_cfg(unsigned char data1, unsigned char data2, int address) {
   if(verbose > 2)
     flsprintf(stdout, "Writing cfg 0x%2.2x 0x%2.2x at 0x%6.6x\n", data1, data2, address);
-  putByte(0x32);
+  putByte(P18FK_ISP_WRITE_CFG);
   putByte(6);
   putByte(0);
   putByte((address >> 16) & 0xFF);
@@ -746,7 +747,7 @@ int
 p16c_mass_erase(void) {
   if(verbose > 2)
     flsprintf(stdout, "Mass erase\n");
-  putByte(0x43);
+  putByte(P16C_BULK_ERASE);
   putByte(0x00);
   getByte();
   return 0;
@@ -758,7 +759,7 @@ p16c_read_page(unsigned char* data, int address, unsigned char num) {
   address = address / 2;
   if(verbose > 2)
     flsprintf(stdout, "Reading page of %d bytes at 0x%6.6x\n", num, address);
-  putByte(0x41);
+  putByte(P16C_ISP_READ_PGM);
   putByte(0x04);
   putByte(num / 2);
   putByte((address >> 16) & 0xFF);
@@ -787,7 +788,7 @@ p16c_write_page(unsigned char* data, int address, unsigned char num) {
       flsprintf(stdout, "~");
     return 0;
   }
-  putByte(0x42);
+  putByte(P16C_ISP_WRITE_PGM);
   putByte(4 + num);
   putByte(num);
   putByte((address >> 16) & 0xFF);
@@ -816,7 +817,7 @@ int
 p16c_write_single_cfg(unsigned char data1, unsigned char data2, int address) {
   if(verbose > 2)
     flsprintf(stdout, "Writing cfg 0x%2.2x 0x%2.2x at 0x%6.6x\n", data1, data2, address);
-  putByte(0x44);
+  putByte(P16C_ISP_WRITE_CFG);
   putByte(6);
   putByte(0);
   putByte((address >> 16) & 0xFF);
@@ -832,7 +833,7 @@ int
 p18q_write_single_cfg(unsigned char data1, unsigned char data2, int address) {
   if(verbose > 2)
     flsprintf(stdout, "Writing cfg 0x%2.2x 0x%2.2x at 0x%6.6x\n", data1, data2, address);
-  putByte(0x45);
+  putByte(P18Q_ISP_WRITE_CFG);
   putByte(6);
   putByte(0);
   putByte((address >> 16) & 0xFF);
@@ -860,7 +861,7 @@ p18q_write_page(unsigned char* data, int address, unsigned char num) {
       flsprintf(stdout, "~");
     return 0;
   }
-  putByte(0x46);
+  putByte(P18Q_ISP_WRITE_PGM);
   putByte(4 + num);
   putByte(num);
   putByte((address >> 16) & 0xFF);
@@ -886,25 +887,25 @@ prog_enter_progmode(void) {
   if(verbose > 2)
     flsprintf(stdout, "Entering programming mode\n");
   if(chip_family == CF_P16F_A)
-    putByte(0x01);
+    putByte(ENTER_PROGMODE);
   else if(chip_family == CF_P16F_B)
-    putByte(0x01);
+    putByte(ENTER_PROGMODE);
   else if(chip_family == CF_P16F_D)
-    putByte(0x01);
+    putByte(ENTER_PROGMODE);
   else if(chip_family == CF_P18F_A)
-    putByte(0x10);
+    putByte(P18_ENTER_PROGMODE);
   else if(chip_family == CF_P18F_B)
-    putByte(0x10);
+    putByte(P18_ENTER_PROGMODE);
   else if(chip_family == CF_P18F_D)
-    putByte(0x10);
+    putByte(P18_ENTER_PROGMODE);
   else if(chip_family == CF_P18F_E)
-    putByte(0x10);
+    putByte(P18_ENTER_PROGMODE);
   else if(chip_family == CF_P16F_C)
-    putByte(0x40);
+    putByte(P16C_ENTER_PROGMODE);
   else if(chip_family == CF_P18F_F)
-    putByte(0x40);
+    putByte(P16C_ENTER_PROGMODE);
   else if(chip_family == CF_P18F_Q)
-    putByte(0x40);
+    putByte(P16C_ENTER_PROGMODE);
   putByte(0x00);
   getByte();
   return 0;
@@ -914,7 +915,7 @@ int
 prog_exit_progmode(void) {
   if(verbose > 2)
     flsprintf(stdout, "Exiting programming mode\n");
-  putByte(0x02);
+  putByte(EXIT_PROGMODE);
   putByte(0x00);
   getByte();
   return 0;
